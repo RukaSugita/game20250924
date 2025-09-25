@@ -1,42 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 
-const stations = [
-  {
-    name: "東京",
-    hints: ["多くの新幹線の始発駅", "丸の内や八重洲口がある", "皇居の最寄り駅の一つ"]
-  },
-  {
-    name: "新宿",
-    hints: ["世界一乗降客数が多い駅", "東京都庁の最寄り駅", "バスタ新宿が隣接"]
-  },
-  {
-    name: "渋谷",
-    hints: ["ハチ公像がある", "スクランブル交差点が有名", "多くの若者文化の発信地"]
-  },
-  {
-    name: "横浜",
-    hints: ["神奈川県最大のターミナル駅", "そごうや高島屋が直結", "みなとみらい線に乗り換え可能"]
-  },
-  {
-    name: "大宮",
-    hints: ["埼玉県の交通の要所", "鉄道博物館が近くにある", "多くの新幹線が停車する"]
-  },
-  {
-    name: "品川",
-    hints: ["リニア中央新幹線の始発駅予定地", "東海道新幹線の停車駅", "駅周辺に多くのオフィスビルが立ち並ぶ"]
-  },
-  {
-    name: "池袋",
-    hints: ["サンシャインシティが有名", "東武百貨店と西武百貨店がある", "乙女ロードがある"]
-  }
+const initialStations = [
+  { name: "東京", hints: [
+      ["日本の首都を代表するターミナル", "丸の内や八重洲口がある", "皇居へのアクセスが良い", "赤レンガの駅舎が象徴的"],
+      ["多くの新幹線が発着する", "地下には広大な商業施設が広がる", "ビジネス街の中心に位置する", "歴史的な建築デザインを持つ"]
+  ]},
+  { name: "新宿", hints: [
+      ["世界一乗降客数が多い", "首都の行政庁舎の最寄り", "高速バスターミナルが隣接", "多くの百貨店が集まる商業の中心地"],
+      ["南口には新しいランドマークタワーがある", "ゴールデン街という飲み屋街がある", "巨大な御苑が近くにある", "眠らない街とも呼ばれる"]
+  ]},
+  { name: "渋谷", hints: [
+      ["忠犬の像がある", "スクランブル交差点が有名", "若者文化の発信地", "大手私鉄の重要なターミナルの一つ"],
+      ["109というファッションビルが象徴的", "再開発で駅周辺が大きく変化", "IT企業が多く集まるエリア", "ハロウィンの際には多くの人が集まる"]
+  ]},
+  { name: "横浜", hints: [
+      ["神奈川県最大のターミナル", "そごうや高島屋が直結", "ベイエリアへの玄関口", "駅の愛称は「ハマの玄関口」"],
+      ["地下街「ポルタ」が広がる", "多くの路線が乗り入れるハブ", "中華街へもアクセスしやすい", "崎陽軒のシウマイが名物"]
+  ]},
+  { name: "品川", hints: [
+      ["リニア中央新幹線の始発駅予定地", "日本の大動脈である新幹線が停まる", "京急線の重要な乗り換え駅", "水族館が併設されたホテルがある"],
+      ["羽田空港へのアクセスが良い", "オフィスビルやホテルが立ち並ぶ", "昔は海に面していた", "車両基地が近くにある"]
+  ]},
+  { name: "池袋", hints: [
+      ["サンシャインシティが有名", "二つの大手百貨店が駅を挟んで建つ", "乙女ロードがある", "芸術劇場がある文化の街"],
+      ["フクロウの像が待ち合わせスポット", "西口公園がリニューアルされた", "ラーメン店の激戦区", "多くの大学があり学生も多い"]
+  ]},
+  { name: "上野", hints: [
+      ["アメヤ横丁が近い", "多くの国立博物館や美術館が集まる文化エリア", "パンダで有名な動物園がある", "京成線で成田空港へのアクセスが良い"],
+      ["西郷隆盛像が公園の入口にある", "不忍池ではボートに乗れる", "東北・北陸方面への列車の始発駅だった", "バイク街としても知られる"]
+  ]},
+  { name: "秋葉原", hints: [
+      ["電気街として有名", "ポップカルチャーの中心地", "つくばエクスプレスの始発駅", "山手線と総武線などが交差する"],
+      ["メイドカフェが多く存在する", "ラジオ会館がランドマークの一つ", "神田明神の最寄り駅", "ガード下のパーツ屋が特徴的"]
+  ]},
+  { name: "川崎", hints: [
+      ["音楽の街として知られる", "ラゾーナという大きな商業施設が直結", "多摩川を挟んで首都と隣接", "工場夜景クルーズの出発点の一つ"],
+      ["毎年ハロウィンパレードが開催される", "チネチッタという映画館エリアがある", "競馬場や競輪場へのアクセス拠点", "JR南武線の重要な駅"]
+  ]},
+  { name: "千葉", hints: [
+      ["県庁所在地の中心", "都市モノレールに乗り換え可能", "そごうがランドマーク", "総武線と房総方面の路線の分岐点"],
+      ["駅ビル「ペリエ」が充実している", "動物公園の最寄り駅の一つ", "市内には大きな港がある", "ピーナッツをモチーフにしたお土産が人気"]
+  ]},
+  { name: "吉祥寺", hints: [
+      ["井の頭恩賜公園がすぐそば", "住みたい街ランキングで常に上位", "ハーモニカ横丁で飲み歩きが楽しめる", "京王井の頭線の始発・終着駅"],
+      ["アニメ制作会社が多く存在する", "ダイヤ街やサンロードという商店街が活気", "ジブリ美術館へのバスが出ている", "駅前に大きなロータリーがある"]
+  ]},
+  { name: "恵比寿", hints: [
+      ["ビール記念館があるガーデンプレイス", "おしゃれな飲食店が多い", "山手線で渋谷と目黒の間", "地下鉄日比谷線も乗り入れている"],
+      ["写真美術館がある", "代官山にも歩いて行ける距離", "坂が多く落ち着いた雰囲気", "ラーメン店の人気も高いエリア"]
+  ]},
+  { name: "北千住", hints: [
+      ["足立区にあるターミナル", "複数の鉄道路線が集まる拠点", "「穴場だと思う街」ランキングで上位", "駅西口には大きな飲み屋街がある"],
+      ["宿場町の面影が残る", "大学のキャンパスができて学生が増えた", "荒川の河川敷が近い", "ルミネやマルイが駅に直結"]
+  ]},
+  { name: "町田", hints: [
+      ["首都圏の南西部に位置し、二つの県境にある", "「西の渋谷」と呼ばれることもある繁華街", "小田急線とJR横浜線が交差する", "リス園が有名"],
+      ["仲見世商店街がディープな雰囲気", "芹ヶ谷公園には国際版画美術館がある", "古くから商業都市として栄えた", "駅周辺には多くの大学がある学生街"]
+  ]},
+  { name: "立川", hints: [
+      ["多摩地域最大のターミナル", "国営昭和記念公園の最寄り", "IKEAや髙島屋など大型商業施設が集まる", "多摩モノレールに乗り換え可能"],
+      ["シネマシティという映画館が有名", "ファーレというパブリックアート群がある", "かつては飛行場があった場所", "防災基地としての機能も持つ"]
+  ]},
+  { name: "海老名", hints: [
+      ["神奈川県の中央に位置する", "小田急・相鉄・JR相模線が乗り入れる", "ららぽーとやビナウォークなどの商業施設がある", "サービスエリアが有名"],
+      ["操車場が近くにある", "駅間の連絡通路が特徴的", "近年、再開発で大きく発展", "いちご狩りができる農園がある"]
+  ]},
+  { name: "柏", hints: [
+      ["「千葉の渋谷」とも呼ばれる", "JR常磐線と私鉄アーバンパークラインが乗り入れる", "ステーションモールが駅に直結", "サッカーチームのホームタウン"],
+      ["裏通りにおしゃれな古着屋やカフェが多い", "手賀沼へのアクセス拠点", "若者が多く集まる街", "かつては宿場町として栄えた"]
+  ]},
+  { name: "船橋", hints: [
+      ["ソースラーメンがご当地グルメ", "JR総武線と大手私鉄の野田線が利用可能", "IKEAやららぽーとへのバスが出ている", "非公認ご当地キャラクターで有名"],
+      ["競馬場があり、大きなレースが開催される", "大神宮が街の歴史を見守る", "市場があり新鮮な魚介類が手に入る", "駅前に大きな顔のモニュメントがある"]
+  ]},
+  { name: "小田原", hints: [
+      ["難攻不落の城として知られる城がある", "箱根への玄関口", "新幹線も停車する交通の要所", "かまぼこが名産品"],
+      ["漁港があり新鮮な魚料理が楽しめる", "風魔忍者の里としても知られる", "駅ビル「ラスカ」が便利", "みかんの産地としても有名"]
+  ]},
+  { name: "国分寺", hints: [
+      ["JR中央線、西武多摩湖線などが乗り入れる", "駅ビル「セレオ」がランドマーク", "かつて武蔵国の役所があった場所", "殿ヶ谷戸庭園という都立庭園がある"],
+      ["お鷹の道・真姿の池湧水群が有名", "宇宙開発関連の研究施設がある", "駅の南北で街の雰囲気が異なる", "都心へのアクセスが良いベッドタウン"]
+  ]},
+  { name: "藤沢", hints: [
+      ["江の島や湘南海岸への玄関口", "小田急江ノ島線と江ノ電の始発", "JRの大動脈路線が通る", "さいか屋という百貨店があった"],
+      ["遊行寺の門前町として栄えた", "サーファーが多く集まるエリアへの拠点", "市役所が駅の近くに移転した", "駅周辺は商店街で賑わっている"]
+  ]},
+  { name: "舞浜", hints: [
+      ["巨大なテーマパークの最寄り", "JR京葉線にある", "発車メロディがテーマパークの曲", "駅前に大きな商業施設イクスピアリがある"],
+      ["リゾートホテルが多く立ち並ぶ", "駅名はアメリカの地名に由来", "円形の劇場「アンフィシアター」がある", "周囲を海に囲まれた埋立地"]
+  ]},
+  { name: "大手町", hints: [
+      ["地下鉄5路線が乗り入れる巨大地下駅", "皇居の東側に位置する", "大手新聞社の本社ビルが立ち並ぶ", "ビジネス街の中心核"],
+      ["将門塚という史跡がある", " सरकारी施設や金融機関が集積", "マラソン大会のスタート・ゴール地点になることが多い", "地下通路で隣の巨大ターミナルに直結"]
+  ]},
+  { name: "銀座", hints: [
+      ["高級ブランド店や百貨店が立ち並ぶ", "歌舞伎座の最寄り", "地下鉄3路線が通る", "中央通りは週末に歩行者天国になる"],
+      ["和光の時計塔がランドマーク", "歴史ある文房具店や画材店がある", "警察博物館がある", "新橋から歩ける距離にある"]
+  ]},
+  { name: "表参道", hints: [
+      ["ファッションブランドの旗艦店が多い", "ケヤキ並木が美しい", "根津美術館の最寄り", "地下鉄3路線が交差する"],
+      ["ヒルズという商業施設が有名", "キャットストリートで裏原宿に繋がる", "有名建築家が設計した建物が多い", "歩道橋からの眺めが人気"]
+  ]},
+  { name: "下北沢", hints: [
+      ["古着屋や小劇場が多いサブカルの街", "「シモキタ」の愛称で親しまれる", "小田急線と京王井の頭線が乗り入れる", "最近、駅周辺の再開発で大きく変貌した"],
+      ["カレーの激戦区としても有名", "ライブハウスが多く音楽の街でもある", "駅が地下化され、新しい商業施設ができた", "個性的な雑貨店が多い"]
+  ]},
+  { name: "二子玉川", hints: [
+      ["「ニコタマ」の愛称で親しまれる", "多摩川の河川敷が近い", "駅直結のライズショッピングセンターが有名", "大手私鉄の田園都市線と大井町線が乗り入れる"],
+      ["蔦屋家電というユニークな店がある", "高島屋があり、富裕層に人気", "夏には花火大会が開催される", "自然と都市が融合した街"]
+  ]},
+  { name: "自由が丘", hints: [
+      ["おしゃれな雑貨店やカフェが多い", "「スイーツの激戦区」として知られる", "熊野神社が鎮座する", "大手私鉄の東横線と大井町線が交差する"],
+      ["ラ・ヴィータというベネチア風の商業施設がある", "緑道があり散策にぴったり", "踏切が多いのが特徴", "街の女神「あおぞら」像がある"]
+  ]},
+  { name: "中野", hints: [
+      ["サブカルの聖地「ブロードウェイ」がある", "サンプラザがランドマークだった", "JR中央・総武線と地下鉄東西線が乗り入れる", "駅周辺には多くの飲み屋街が広がる"],
+      ["四季の森公園は憩いの場", "まんだらけの本拠地", "大学のキャンパスが集まる", "再開発計画が進行中"]
+  ]},
+  { name: "浅草", hints: [
+      ["雷門や仲見世通りで有名", "スカイツリーへ向かう路線の始発", "地下鉄銀座線も利用できる", "隅田川のほとりに位置し、屋形船が楽しめる"],
+      ["花やしきという日本最古の遊園地がある", "三社祭は大きな賑わいを見せる", "人力車が街の風物詩", "食品サンプルの店が多い"]
+  ]},
+  { name: "元町・中華街", hints: [
+      ["日本三大チャイナタウンの一つ", "おしゃれな商店街がある", "みなとみらい線の終着駅", "山下公園や港の見える丘公園が近い"],
+      ["外国人墓地がある", "春節には盛大なお祝いが行われる", "食べ歩きが楽しい", "坂の上の洋館が有名"]
+  ]},
+  { name: "押上", hints: [
+      ["巨大な電波塔のふもとにある", "「スカイツリー前」という副駅名がある", "複数の路線が乗り入れる交通の要所", "プラネタリウム「天空」がある"],
+      ["水族館も併設されている", "ソラマチという商業施設が広がる", "京成線のアクセス特急が停車する", "昔ながらの商店街も残る"]
+  ]},
+  { name: "武蔵小杉", hints: [
+      ["タワーマンションが林立する川崎市の駅", "複数のJR線と私鉄線が交差するハブ", "近年、再開発で大きく変貌した", "グランツリーという商業施設がある"],
+      ["多摩川の河川敷が近い", "新しい小学校が次々と開校", "横須賀線のホームが離れている", "交通の便が良く、人口が急増した"]
+  ]},
+  { name: "中目黒", hints: [
+      ["川沿いの桜並木が有名", "おしゃれなカフェや古着屋が集まる", "大手私鉄の東横線と地下鉄日比谷線が乗り入れる", "代官山と恵比寿の間に位置する"],
+      ["高架下がおしゃれな店舗街になっている", "芸能人がよく訪れる街としても知られる", "ドン・キホーテの本社があった", "冬にはイルミネーションが美しい"]
+  ]},
+  { name: "田園調布", hints: [
+      ["日本有数の高級住宅街として知られる", "西口の放射状に広がる街並みが特徴的", "旧駅舎は駅のシンボルとして保存", "大手私鉄の東横線と目黒線が乗り入れる"],
+      ["銀杏並木が美しい", "駅前に噴水がある", "静かで緑豊かな住環境", "有名な建築家が街並みを設計した"]
+  ]},
+  { name: "たまプラーザ", hints: [
+      ["大手私鉄の田園都市線の急行停車駅", "駅直結の「テラス」という大規模商業施設がある", "美しが丘という地名にある横浜市の駅", "郊外の洗練された街として人気"],
+      ["桜並木のトンネルが有名", "ドラマのロケ地としてよく使われる", "都心へ通勤するファミリー層が多い", "駅周辺は坂道が多い"]
+  ]},
+  { name: "三軒茶屋", hints: [
+    ["「サンチャ」の愛称で親しまれる", "キャロットタワーがランドマーク", "世田谷線に乗り換えられる", "小劇場や個人経営の飲食店が多い"],
+    ["国道246号線が通る", "芸能人が多く住むエリア", "レトロな飲み屋街がある", "田園都市線で渋谷から2駅"]
+  ]},
+  { name: "代官山", hints: [
+    ["蔦屋書店がランドマークの一つ", "おしゃれなセレクトショップが多い", "大使館が点在する国際的なエリア", "東横線で渋谷の隣の駅"],
+    ["ヒルサイドテラスという複合施設がある", "旧山手通りは散策に最適", "高級住宅街に囲まれている", "小さな公園が点在する落ち着いた雰囲気"]
+  ]},
+  { name: "永田町", hints: [
+    ["日本の政治の中心地", "国会議事堂の最寄り駅の一つ", "地下鉄3路線が乗り入れ、赤坂見附駅と繋がっている", "最高裁判所や議員会館がある"],
+    ["国立国会図書館がある", "自民党本部や首相官邸が近い", "駅構内が広く、乗り換えに時間がかかる", "周辺は警備が厳重"]
+  ]},
+  { name: "後楽園", hints: [
+    ["巨大なドーム球場が隣接", "遊園地やスパ施設がある複合施設の最寄り", "文京区に位置する", "地下鉄丸ノ内線と南北線が交差"],
+    ["小石川の庭園が有名", "駅名になっている日本庭園がある", "文京シビックセンターの展望台からの眺めが良い", "水道橋駅からも歩ける距離"]
+  ]},
 ];
 
+// Fisher-Yates shuffle algorithm
+const shuffleArray = (array: any[]) => {
+  let currentIndex = array.length, randomIndex;
+  const newArray = [...array];
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [newArray[currentIndex], newArray[randomIndex]] = [
+      newArray[randomIndex], newArray[currentIndex]];
+  }
+  return newArray;
+};
+
+
 const App = () => {
+  type StationData = (typeof initialStations)[0];
+  type StationQuizItem = StationData & { selectedHints: string[] };
+
+  const [stations, setStations] = useState<StationQuizItem[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userGuess, setUserGuess] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isAnswered, setIsAnswered] = useState(false);
+
+  const startNewGame = () => {
+    const newStations = shuffleArray(initialStations).map(station => ({
+      ...station,
+      selectedHints: station.hints[Math.floor(Math.random() * station.hints.length)]
+    }));
+    setStations(newStations);
+    setCurrentQuestionIndex(0);
+    setUserGuess('');
+    setFeedback('');
+    setIsAnswered(false);
+  }
+
+  useEffect(() => {
+    startNewGame();
+  }, []);
+  
+  const handleNextQuestion = useCallback(() => {
+    setIsAnswered(false);
+    setFeedback('');
+    setUserGuess('');
+    if (currentQuestionIndex === stations.length - 1) {
+        alert("クイズ終了！お疲れ様でした。");
+        startNewGame();
+    } else {
+        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+    }
+  }, [currentQuestionIndex, stations]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && isAnswered) {
+        event.preventDefault(); 
+        handleNextQuestion();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAnswered, handleNextQuestion]);
+
+  if (stations.length === 0) {
+    return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="text-xl font-semibold">Loading Quiz...</div>
+        </div>
+    );
+  }
 
   const currentStation = stations[currentQuestionIndex];
 
@@ -55,64 +254,14 @@ const App = () => {
     setIsAnswered(true);
   };
 
-  const handleNextQuestion = () => {
-    setIsAnswered(false);
-    setFeedback('');
-    setUserGuess('');
-    setCurrentQuestionIndex((prevIndex) => (prevIndex + 1) % stations.length);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full transform transition-all hover:shadow-2xl">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">関東駅名クイズ</h1>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-3">ヒント:</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-600">
-            {currentStation.hints.map((hint, index) => (
-              <li key={index}>{hint}</li>
-            ))}
-          </ul>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">関東駅名クイズ</h1>
+          <span className="text-lg font-semibold text-gray-500 tabular-nums">
+            {currentQuestionIndex + 1} / {stations.length}
+          </span>
         </div>
-
-        <form onSubmit={handleGuess}>
-          <input
-            type="text"
-            value={userGuess}
-            onChange={(e) => setUserGuess(e.target.value)}
-            disabled={isAnswered}
-            placeholder="駅名を入力"
-            aria-label="駅名を入力"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-          />
-          <button
-            type="submit"
-            disabled={isAnswered}
-            className="w-full mt-4 bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition disabled:bg-blue-300"
-          >
-            回答する
-          </button>
-        </form>
-
-        {feedback && (
-          <p className={`mt-4 text-center text-lg font-semibold ${feedback.includes('正解') ? 'text-green-600' : 'text-red-600'}`}>
-            {feedback}
-          </p>
-        )}
-
-        {isAnswered && (
-          <button
-            onClick={handleNextQuestion}
-            className="w-full mt-4 bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition"
-          >
-            次の問題へ
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<App />);
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-3">ヒ
